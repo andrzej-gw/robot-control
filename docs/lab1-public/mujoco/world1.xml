@@ -3,8 +3,10 @@
     <asset>
         <texture name="texplane" type="2d" builtin="checker" rgb1="1 1 1" rgb2="0 0 0" width="512" height="512"/>
         <texture name="texture_1" file="assets/4x4_1000-0.png"/>
+        <texture name="texture_2" file="assets/marker23.png"/>
         <material name="plane" texture="texplane" texrepeat="5 5" texuniform="true"/>
         <material name="text_1" texture="texture_1" />
+        <material name="text_2" texture="texture_2" />
     </asset>
     <worldbody>
         <light dir="0 0 -1" pos="0 0 10" diffuse="0.3 0.6 0.3"/>
@@ -12,11 +14,20 @@
         <body name="checker" pos="0 0 0.1">
             <geom material="plane" size="0.7 0.9 0.02" rgba="1 1 1 1" type="box"/>
         </body>
+        <body name="checker1" pos="-2 0 0.1">
+            <geom material="plane" size="0.7 0.9 0.02" rgba="1 1 1 1" type="cylinder"/>
+        </body>
+        <body name="checker2" pos="2 0 0.1">
+            <geom material="plane" size="0.7 0.9 0.02" rgba="1 1 1 1" type="sphere"/>
+        </body>
         <body name="floor" pos="0 0 -0.1">
             <geom size="5.0 5.0 0.02" rgba="1 1 1 1" type="box"/>
         </body>
         <body name="checker_2" pos="0 2 0.1">
             <geom material="text_1" size="0.5 0.5 0.02" rgba="1 1 1 1" type="box"/>
+        </body>
+        <body name="checker_3" pos="2 2 0.1">
+            <geom material="text_2" size="0.5 0.5 0.02" rgba="1 1 1 1" type="box"/>
         </body>
     </worldbody>
 </mujoco>

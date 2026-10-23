@@ -3,6 +3,45 @@ from PIL import Image
 import cv2
 import numpy as np
 
+def find_colors(img, color, tolerance, debug = False):
+    #  print(img.shape)
+    result = []
+    for x in range(img.shape[0]):
+        for y in range(img.shape[1]):
+            for i in range(3):
+                if not (color[i]-tolerance<img[x][y][i] and img[x][y][i]<color[i]+tolerance):
+                    break
+                if i == 2:
+                    result.append((x, y))
+
+    if debug:
+        img2 = img.copy()
+        for x, y in result:
+            img2[x][y] = [255, 0, 255]
+
+        combined = cv2.hconcat([img, img2])
+            
+        cv2.imshow(f"Detecion of {color}", combined)
+        cv2.waitKey(0)          # wait for a key press
+        cv2.destroyAllWindows()
+    
+    return result
+
+def find_center(img, color, tolerance, debug = False):
+    points = find_colors(img, color, tolerance, debug)
+    average = np.mean(points, axis=0)  # [avg_x, avg_y]
+
+    if debug:
+        img2 = img.copy()
+        x = int(average[0])
+        y = int(average[1])
+        img2[x][y] = [255, 0, 255]
+        cv2.imshow("Center", img2)
+        cv2.waitKey(0)          # wait for a key press
+        cv2.destroyAllWindows()
+    
+    return average
+    
 # distance between two cameras
 baseline = 0.1
 
@@ -17,14 +56,45 @@ img2 = cv2.imread('assets/right.png')
 
 #TODO: find the positions of the objects and reconstruct the images
 
+# fovy: f * tan(fovy / 2) = image_height / 2
+f = resolution[0]/2/np.tan(np.deg2rad(90/2))
+print("f:", f)
+
 # red sphere
-pos_sphere = (...)
+print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nred sphere:")
+l = find_center(img1, (0, 0, 255*0.8), 125)
+r = find_center(img2, (0, 0, 255*0.8), 125)
+
+print("x-x':", l[1]-r[1])
+
+Z=f*baseline/(l[1]-r[1])
+print("Z:", Z)
+
+pos_sphere = ((l[1]-resolution[0]/2)/f*Z, -(l[0]-resolution[1]/2)/f*Z, 1 - Z)
 
 # green box
-pos_box1 = (...)
+print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\ngreen box:")
+l = find_center(img1, (0, 255*0.8, 0), 125)
+r = find_center(img2, (0, 255*0.8, 0), 125)
+
+print("x-x':", l[1]-r[1])
+
+Z=f*baseline/(l[1]-r[1])
+print("Z:", Z)
+
+pos_box1 = ((l[1]-resolution[0]/2)/f*Z, -(l[0]-resolution[1]/2)/f*Z, 1 - Z-box1_size)
 
 # blue box
-pos_box2 = (...)
+print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nblue box:")
+l = find_center(img1, (255*0.8, 0, 0), 125)
+r = find_center(img2, (255*0.8, 0, 0), 125)
+
+print("x-x':", l[1]-r[1])
+
+Z=f*baseline/(l[1]-r[1])
+print("Z:", Z)
+
+pos_box2 = ((l[1]-resolution[0]/2)/f*Z, -(l[0]-resolution[1]/2)/f*Z, 1 - Z-box2_size)
 
 xml_string =f"""\
 <mujoco model="simple_scene">

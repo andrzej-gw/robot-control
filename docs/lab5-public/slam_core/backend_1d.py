@@ -42,7 +42,8 @@ class AisleBackend:
         # (odom[t] is the measured displacement from x[t] to x[t + 1])
         # observations, one residual per sighting: where post obs_post[i] should appear as seen from
         # pose obs_pose[i] (its offset along the aisle), minus where it did (obs_z[i])
-        raise NotImplementedError  # your code here
+        r_odom = (x[1:] - x[:-1] - odom) / self.sigma_odom
+        r_obs = (posts[obs_post] - x[obs_pose] - obs_z) / self.sigma_sensor
         ### END TODO ###
         return np.concatenate([[r_prior], r_odom, r_obs])
 

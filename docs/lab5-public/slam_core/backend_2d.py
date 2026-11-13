@@ -83,7 +83,23 @@ class WarehouseBackend:
         ### TODO ###
         # 2. Odometry: the motion between consecutive estimated poses vs the measured one.
         # 3. Observations: where the estimated landmark should appear from the estimated pose vs where it did.
-        raise NotImplementedError  # your code here
+        r_odom = np.array([
+            relative_motion(*poses[i], *poses[i + 1])
+            for i in range(n_poses - 1)
+        ]).reshape(-1, 3)
+
+        r_odom -= odom
+        r_odom[:, 2] = wrap_angle(r_odom[:, 2])
+        r_odom /= [self.sigma_odom_xy, self.sigma_odom_xy, self.sigma_odom_theta]
+        
+        r_obs = np.array([
+            observe(*poses[p], *landmarks[lm])
+            for p, lm in zip(obs_pose, obs_lm)
+        ]).reshape(-1, 2)
+
+        r_obs -= obs_z
+        r_obs[:, 1] = wrap_angle(r_obs[:, 1])
+        r_obs /= [self.sigma_range, self.sigma_bearing]
         ### END TODO ###
 
         return np.concatenate([r_prior, r_odom.ravel(), r_obs.ravel()])
@@ -96,7 +112,31 @@ class WarehouseBackend:
         works, it is just slower."""
         ### TODO (part 3) ###
         # scipy.sparse.lil_matrix is a convenient way to fill such a matrix
-        return None  # replace by your code
+        n_obs = len(obs_pose)
+
+        rows = 3 * n_poses + 2 * n_obs
+        cols = 3 * n_poses + 2 * n_landmarks
+
+        J = lil_matrix((rows, cols), dtype=int)
+
+        # Prior
+        J[0:3, 0:3] = 1
+
+        # Odometry
+        for i in range(n_poses - 1):
+            r = 3 + 3 * i
+
+            J[r:r+3, 3*i:3*i+3] = 1
+            J[r:r+3, 3*(i+1):3*(i+1)+3] = 1
+
+        # Observations
+        for i, (p, lm) in enumerate(zip(obs_pose, obs_lm)):
+            r = 3 * n_poses + 2 * i
+
+            J[r:r+2, 3*p:3*p+3] = 1
+            J[r:r+2, 3*n_poses+2*lm:3*n_poses+2*lm+2] = 1
+
+        return J.tocsr()
         ### END TODO ###
 
     # ---- the solve ---------------------------------------------------------------------------------

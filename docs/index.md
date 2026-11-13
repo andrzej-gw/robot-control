@@ -5,8 +5,12 @@
 * [lab3](lab3-public/lab3.md)
 * [lab4](lab4-public/lab4.md)
 * [lab5](lab5-public/lab5.md)
+* [lab6](hw2-public/index.md) (also the homework about PID controllers)
 
 # Homeworks
+
+* [Calibration and image stitching](hw1-public/hw1.md)
+* [PID controllers](hw2-public/index.md)
 
 # Lectures
 

@@ -42,9 +42,12 @@ class AisleBackend:
         # (odom[t] is the measured displacement from x[t] to x[t + 1])
         # observations, one residual per sighting: where post obs_post[i] should appear as seen from
         # pose obs_pose[i] (its offset along the aisle), minus where it did (obs_z[i])
-        r_odom = (x[1:] - x[:-1] - odom) / self.sigma_odom
+        r_odom = (x[1:] - x[:-1]-odom) / self.sigma_odom
+        # ~ print("posts:", posts,"x:", x,"obs_z:", obs_z)
+        # ~ print("obs_pose:", obs_pose,"obs_post:", obs_post,"x[obs_pose]:", x[obs_pose])
         r_obs = (posts[obs_post] - x[obs_pose] - obs_z) / self.sigma_sensor
         ### END TODO ###
+        
         return np.concatenate([[r_prior], r_odom, r_obs])
 
     def optimize(self, start: float, odometry: Sequence[float], observations: Sequence[Observation1D]):

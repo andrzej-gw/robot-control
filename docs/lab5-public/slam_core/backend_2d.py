@@ -82,26 +82,37 @@ class WarehouseBackend:
 
         ### TODO ###
         # 2. Odometry: the motion between consecutive estimated poses vs the measured one.
-        # 3. Observations: where the estimated landmark should appear from the estimated pose vs where it did.
-        r_odom = np.array([
-            relative_motion(*poses[i], *poses[i + 1])
-            for i in range(n_poses - 1)
-        ]).reshape(-1, 3)
+        # ~ print("poses:", poses, "odom:", odom)
+        # ~ print(relative_motion(*poses[:-1].T, *poses[1:].T))
+        # ~ r_odom = (poses[1:] - poses[:-1] - odom) / [self.sigma_odom_xy, self.sigma_odom_xy, self.sigma_odom_theta]
+        predicted_odom = np.column_stack(
+            relative_motion(*poses[:-1].T, *poses[1:].T)
+        )
 
-        r_odom -= odom
-        r_odom[:, 2] = wrap_angle(r_odom[:, 2])
-        r_odom /= [self.sigma_odom_xy, self.sigma_odom_xy, self.sigma_odom_theta]
+        odom_error = predicted_odom - odom
+        odom_error[:, 2] = wrap_angle(odom_error[:, 2])
+
+        r_odom = odom_error / np.array([
+            self.sigma_odom_xy,
+            self.sigma_odom_xy,
+            self.sigma_odom_theta
+        ])
         
-        r_obs = np.array([
-            observe(*poses[p], *landmarks[lm])
-            for p, lm in zip(obs_pose, obs_lm)
-        ]).reshape(-1, 2)
-
-        r_obs -= obs_z
-        r_obs[:, 1] = wrap_angle(r_obs[:, 1])
-        r_obs /= [self.sigma_range, self.sigma_bearing]
+        # 3. Observations: where the estimated landmark should appear from the estimated pose vs where it did.
+        obs_error = np.column_stack(observe(*poses[obs_pose].T, *landmarks[obs_lm].T)) - obs_z
+        
+        # ~ vectors = landmarks[obs_lm] - poses[obs_pose][:, :-1]
+        # ~ ranges = np.hypot(vectors[:, 1], vectors[:,0])
+        # ~ true_bearings = np.arctan2(vectors[:, 1], vectors[:,0])
+        # ~ print("poses[obs_pose]:", poses[obs_pose])
+        # ~ print("tb:", true_bearings, "poses[obs_pose][2]", poses[obs_pose][:, 2])
+        # ~ bearings = wrap_angle (true_bearings - poses[obs_pose][:, 2]) 
+        # ~ obs_error = (np.column_stack((ranges, bearings)) - obs_z)
+        obs_error[:, 1] = wrap_angle(obs_error[:, 1])
+        r_obs = obs_error / [self.sigma_range, self.sigma_bearing]
+        # ~ r_obs *= 0
         ### END TODO ###
-
+        
         return np.concatenate([r_prior, r_odom.ravel(), r_obs.ravel()])
 
     def jacobian_sparsity(self, n_poses: int, n_landmarks: int, obs_pose: np.ndarray, obs_lm: np.ndarray):
@@ -112,30 +123,29 @@ class WarehouseBackend:
         works, it is just slower."""
         ### TODO (part 3) ###
         # scipy.sparse.lil_matrix is a convenient way to fill such a matrix
+        
         n_obs = len(obs_pose)
-
-        rows = 3 * n_poses + 2 * n_obs
-        cols = 3 * n_poses + 2 * n_landmarks
-
-        J = lil_matrix((rows, cols), dtype=int)
-
-        # Prior
+        
+        n_cols = 3*n_poses + 2*n_landmarks # number of unknowns = 3x poses + 2xlandmarks
+        n_rows = 3 + 3*(n_poses-1) + 2*n_obs # number of residuals = 3x prior + 3x odometries + 2xobservations
+        
+        J = lil_matrix((n_rows, n_cols), dtype=int)
+        
+        # prior
         J[0:3, 0:3] = 1
-
-        # Odometry
-        for i in range(n_poses - 1):
-            r = 3 + 3 * i
-
-            J[r:r+3, 3*i:3*i+3] = 1
-            J[r:r+3, 3*(i+1):3*(i+1)+3] = 1
-
-        # Observations
-        for i, (p, lm) in enumerate(zip(obs_pose, obs_lm)):
-            r = 3 * n_poses + 2 * i
-
-            J[r:r+2, 3*p:3*p+3] = 1
-            J[r:r+2, 3*n_poses+2*lm:3*n_poses+2*lm+2] = 1
-
+        
+        # odom
+        for i in range(n_poses-1):
+            J[i*3+3:i*3+6, i*3:i*3+6] = 1
+        
+        # observations
+        for i in range(n_obs):
+            row = 3*n_poses + 2*i
+            col1 = 3*obs_pose[i]
+            col2 = 3*n_poses + 2*obs_lm[i]
+            J[row:row+2, col1:col1+3] = 1
+            J[row:row+2, col2:col2+2] = 1
+        
         return J.tocsr()
         ### END TODO ###
 

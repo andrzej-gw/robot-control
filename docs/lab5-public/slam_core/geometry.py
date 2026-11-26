@@ -16,10 +16,10 @@ def compose(x, y, theta, dx, dy, dtheta):
     `relative_motion` below."""
     ### TODO ###
     # rotate the motion from the robot's frame into the world frame, add it, wrap the angle
-    new_x = x + dx*np.cos(theta)-dy*np.sin(theta)
-    new_y = y + dx*np.sin(theta)+dy*np.cos(theta)
-    new_theta = wrap_angle(theta+dtheta)
-    return new_x, new_y, new_theta
+    nx = x + np.cos(theta) * dx - np.sin(theta) * dy
+    ny = y + np.sin(theta) * dx + np.cos(theta) * dy
+    ntheta = wrap_angle(theta + dtheta)
+    return nx, ny, ntheta
     ### END TODO ###
 
 

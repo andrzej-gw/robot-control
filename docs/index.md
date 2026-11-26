@@ -7,6 +7,7 @@
 * [lab5](lab5-public/lab5.md)
 * [lab6](hw2-public/index.md) (also the homework about PID controllers)
 * [lab7](lab7-public/lab7.md)
+* [lab8](lab8-public/lab8.md)
 
 # Homeworks
 
